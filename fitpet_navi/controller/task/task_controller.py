@@ -7,8 +7,9 @@ from fitpet_navi.controller.task.dto.task_request_dto import (
     TaskReorderRequestDto,
     TaskUpdateRequestDto,
 )
-from fitpet_navi.controller.task.dto.task_response_dto import TaskResponseDto
+from fitpet_navi.controller.task.dto.task_response_dto import TaskResponseDto, TaskTypeTemplate
 from fitpet_navi.core.database import get_db
+from fitpet_navi.domain.task.task_type_template import get_template_by_task_type
 from fitpet_navi.service.task.task_service import TaskService
 
 task_router = APIRouter(
@@ -29,6 +30,18 @@ task_router = APIRouter(
         },
     },
 )
+
+
+@task_router.get(
+    "/templates",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TaskTypeTemplate],
+)
+async def get_templates() -> list[TaskTypeTemplate]:
+    return [
+        TaskTypeTemplate(task_type=task_type, template=template)
+        for task_type, template in get_template_by_task_type().items()
+    ]
 
 
 @task_router.get(

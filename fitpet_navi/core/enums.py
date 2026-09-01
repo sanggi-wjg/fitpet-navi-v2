@@ -10,7 +10,7 @@ class TaskStatusEnum(StrEnum):
 
 
 class TaskTypeEnum(StrEnum):
-    NEW_FEATURE = "신규 기능"
-    EXISTING_FEATURE_MODIFICATION = "기존 기능 수정"
-    AUTOMATION_BATCH = "자동화·배치"
-    POLICY_CHANGE = "정책 변경"
+    NEW_FEATURE = "NEW_FEATURE"
+    FEATURE_MODIFICATION = "FEATURE_MODIFICATION"
+    AUTOMATION_BATCH = "AUTOMATION_BATCH"
+    POLICY_CHANGE = "POLICY_CHANGE"

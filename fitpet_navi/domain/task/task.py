@@ -18,7 +18,9 @@ class Task(Base, SoftDeleteMixin):
     content: Mapped[str] = mapped_column(Text, nullable=False, default="", comment="태스크 내용")
     tags: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="태그 (쉼표 구분 문자열)")
     task_type: Mapped[TaskTypeEnum] = mapped_column(
-        String(64), nullable=False, comment="타입 (신규 기능 / 기존 기능 수정 / 자동화·배치 / 정책 변경)"
+        String(64),
+        nullable=False,
+        comment="타입 (NEW_FEATURE / FEATURE_MODIFICATION / AUTOMATION_BATCH / POLICY_CHANGE)",
     )
     status: Mapped[TaskStatusEnum] = mapped_column(String(64), nullable=False, comment="태스크 상태")
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="표시순서: 0이  가장 높음")

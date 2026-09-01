@@ -13,7 +13,7 @@ def upgrade():
             title         VARCHAR(255) NOT NULL COMMENT '제목',
             content       TEXT         NOT NULL COMMENT '이름',
             tags          VARCHAR(255) NULL COMMENT '태그',
-            task_type     VARCHAR(64)  NOT NULL COMMENT '타입 (신규 기능 / 기존 기능 수정 / 자동화·배치 / 정책 변경)',
+            task_type     VARCHAR(64)  NOT NULL COMMENT '타입 (NEW_FEATURE / FEATURE_MODIFICATION / AUTOMATION_BATCH / POLICY_CHANGE)',
             status        VARCHAR(64)  NOT NULL COMMENT '상태 (BACKLOG / TODO / IN PROGRESS / DONE / CANCELLED)',
             display_order INT          NOT NULL DEFAULT 0 COMMENT '표시순서: 0이  가장 높음',
             priority      INT          NOT NULL DEFAULT 2 COMMENT '우선순위: 0 ~ 4, 0이 가장 높음',

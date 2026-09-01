@@ -5,10 +5,15 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from fitpet_navi.core.enums import TaskStatusEnum
+from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
 
 if TYPE_CHECKING:
     from fitpet_navi.domain.task.task import Task
+
+
+class TaskTypeTemplate(BaseModel):
+    task_type: TaskTypeEnum
+    template: str
 
 
 class TaskResponseDto(BaseModel):

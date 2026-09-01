@@ -53,7 +53,12 @@ venv = ".venv"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 env = [
-
+    "DEBUG=True",
+    "DATABASE__HOST=localhost",
+    "DATABASE__PORT=0",
+    "DATABASE__DATABASE=test",
+    "DATABASE__USER=test",
+    "DATABASE__PASSWORD=test",
 ]
 pythonpath = ['.']
 python_files = ["test_*.py"]
