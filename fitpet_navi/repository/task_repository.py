@@ -1,0 +1,48 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from fitpet_navi.domain.task.task import Task
+
+
+class TaskRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def save(self, entity: Task) -> Task:
+        self.session.add(entity)
+        self.session.flush()
+        return entity
+
+    def find_by_id(self, task_id: int) -> Task | None:
+        stmt = select(Task).where(
+            Task.id == task_id,
+            Task.is_deleted.is_(False),
+        )
+        result = self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    def find_by_id_with_lock(self, task_id: int) -> Task | None:
+        stmt = (
+            select(Task)
+            .where(
+                Task.id == task_id,
+                Task.is_deleted.is_(False),
+            )
+            .with_for_update()
+        )
+
+        result = self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    def find_all(self) -> list[Task]:
+        stmt = select(Task).where(Task.is_deleted.is_(False)).order_by(Task.display_order.asc(), Task.id.desc())
+        result = self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    def find_all_by_ids(self, task_ids: list[int]) -> list[Task]:
+        stmt = select(Task).where(
+            Task.id.in_(task_ids),
+            Task.is_deleted.is_(False),
+        )
+        result = self.session.execute(stmt)
+        return list(result.scalars().all())
