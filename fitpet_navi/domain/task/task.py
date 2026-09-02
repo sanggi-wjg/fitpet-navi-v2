@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
@@ -11,24 +11,28 @@ from fitpet_navi.domain.support.base import Base, SoftDeleteMixin
 
 class Task(Base, SoftDeleteMixin):
     __tablename__ = "task"
-    __table_args__ = {"comment": "사용자 태스크"}
+    __table_args__ = {"comment": "태스크"}
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, comment="태스크 ID")
-    title: Mapped[str] = mapped_column(String(255), nullable=False, comment="태스크 제목")
-    content: Mapped[str] = mapped_column(Text, nullable=False, default="", comment="태스크 내용")
-    tags: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="태그 (쉼표 구분 문자열)")
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False, comment="제목")
+    tags: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="태그")
     task_type: Mapped[TaskTypeEnum] = mapped_column(
         String(64),
         nullable=False,
         comment="타입 (NEW_FEATURE / FEATURE_MODIFICATION / AUTOMATION_BATCH / POLICY_CHANGE)",
     )
-    status: Mapped[TaskStatusEnum] = mapped_column(String(64), nullable=False, comment="태스크 상태")
-    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="표시순서: 0이  가장 높음")
+    status: Mapped[TaskStatusEnum] = mapped_column(
+        String(64),
+        nullable=False,
+        comment="상태 (BACKLOG / TODO / IN PROGRESS / DONE / CANCELLED)",
+    )
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="노출순서: 0이  가장 높음")
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=2, comment="우선순위: 0 ~ 4, 0이 가장 높음")
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, comment="아카이브 여부")
     archived_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, comment="아카이브 시각"
+        DateTime(timezone=True), nullable=True, comment="아카이브 일시"
     )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="버전")
 
     def __repr__(self) -> str:
         return f"<Task(id={self.id}, title={self.title}, status={self.status})>"
@@ -39,26 +43,36 @@ class Task(Base, SoftDeleteMixin):
         title: str,
         task_type: TaskTypeEnum,
         status: TaskStatusEnum,
-        content: str = "",
         tags: str | None = None,
         display_order: int = 0,
         priority: int = 2,
     ) -> "Task":
-        return cls(
+        return Task(
             title=title,
             task_type=task_type,
             status=status,
-            content=content,
             tags=tags,
             display_order=display_order,
             priority=priority,
         )
 
-    _UPDATABLE_FIELDS = {"title", "content", "tags", "status", "display_order", "priority"}
+    _UPDATABLE_FIELDS = {"title", "tags", "status", "priority"}
 
-    def update(self, **fields) -> "Task":
+    def update_display_order(self, display_order: int):
+        self.display_order = display_order
+
+    # def increase_version(self):
+    #     self.version += 1
+
+    def update_fields(self, **fields) -> bool:
+        any_changed = False
+
         for key, value in fields.items():
             if key not in self._UPDATABLE_FIELDS:
                 raise ValueError(f"Field '{key}' is not updatable")
-            setattr(self, key, value)
-        return self
+
+            if hasattr(self, key) and getattr(self, key) != value:
+                setattr(self, key, value)
+                any_changed = True
+
+        return any_changed

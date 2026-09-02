@@ -24,6 +24,10 @@ task_router = APIRouter(
             "description": "Not Found",
             "model": ErrorResponseDto,
         },
+        status.HTTP_409_CONFLICT: {
+            "description": "Conflict",
+            "model": ErrorResponseDto,
+        },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
             "description": "Internal Server Error",
             "model": ErrorResponseDto,
@@ -79,13 +83,12 @@ async def get_task(
 async def create_task(
     request_dto: TaskCreateRequestDto,
     db: Session = Depends(get_db),
-):
+) -> TaskResponseDto:
     service = TaskService(db)
     task = service.create_task(
         title=request_dto.title,
         task_type=request_dto.task_type,
         status=request_dto.status,
-        content=request_dto.content,
         tags=request_dto.tags,
         display_order=request_dto.display_order,
         priority=request_dto.priority,
@@ -101,9 +104,9 @@ async def create_task(
 async def reorder_tasks(
     request_dto: TaskReorderRequestDto,
     db: Session = Depends(get_db),
-):
+) -> list[TaskResponseDto]:
     service = TaskService(db)
-    tasks = service.reorder_tasks(request_dto.task_ids)
+    tasks = service.reorder_tasks(request_dto.ordered_task_ids)
     return [TaskResponseDto.from_entity(t) for t in tasks]
 
 
@@ -116,10 +119,10 @@ async def update_task(
     task_id: int,
     request_dto: TaskUpdateRequestDto,
     db: Session = Depends(get_db),
-):
+) -> TaskResponseDto:
+    update_data = request_dto.model_dump(exclude_unset=True)
+    request_version = update_data.pop("version")
+
     service = TaskService(db)
-    task = service.update_task(
-        task_id,
-        **request_dto.model_dump(exclude_unset=True),
-    )
+    task = service.update_task_with_version(task_id, request_version, **update_data)
     return TaskResponseDto.from_entity(task)

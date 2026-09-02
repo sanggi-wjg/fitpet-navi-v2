@@ -30,9 +30,9 @@ class SoftDeleteMixin:
         server_default=text("'9999-12-31 14:59:59+00'"),
         default=_NOT_DELETED,
         nullable=False,
-        comment="삭제일시 (9999-12-31 = 미삭제)",
+        comment="삭제일시",
     )
-    is_deleted: Mapped[bool] = mapped_column(default=False, comment="삭제 여부")
+    is_deleted: Mapped[bool] = mapped_column(default=False, comment="삭제여부")
 
     def delete(self):
         self.is_deleted = True
