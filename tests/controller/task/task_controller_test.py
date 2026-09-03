@@ -2,7 +2,7 @@ from typing import Callable
 
 from fastapi.testclient import TestClient
 
-from fitpet_navi.core.enums import TaskTypeEnum
+from fitpet_navi.domain.task.enums import TaskTypeEnum
 from fitpet_navi.domain.task.task import Task
 from fitpet_navi.domain.task.task_section_template import get_section_templates_by_task_type
 
@@ -170,6 +170,43 @@ class TaskControllerTest:
         assert body["task_id"] == created["id"]
         assert body["body"] == "- 생일인 유저에게 적립금 5,000원 발급"
         assert body["version"] == 1
+
+    def test_archive_task(self, client: TestClient, task_fixture: Callable[..., Task]):
+        # given
+        task = task_fixture()
+
+        # when
+        response = client.patch(f"/api/v1/tasks/{task.id}/archive")
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["id"] == task.id
+        assert body["is_archived"] is True
+        assert body["archived_at"] is not None
+
+    def test_unarchive_task(self, client: TestClient, task_fixture: Callable[..., Task]):
+        # given
+        task = task_fixture()
+        client.patch(f"/api/v1/tasks/{task.id}/archive")
+
+        # when
+        response = client.patch(f"/api/v1/tasks/{task.id}/unarchive")
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["id"] == task.id
+        assert body["is_archived"] is False
+        assert body["archived_at"] is None
+
+    def test_archive_task_not_found(self, client: TestClient):
+        # when
+        response = client.patch("/api/v1/tasks/999999/archive")
+
+        # then
+        assert response.status_code == 404
+        assert response.json()["statusText"] == "NOT_FOUND"
 
     def test_get_task_not_found(self, client: TestClient):
         # when

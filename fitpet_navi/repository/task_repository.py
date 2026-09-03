@@ -22,7 +22,19 @@ class TaskRepository:
         result = self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    def find_by_id_with_related(self, task_id: int) -> Task | None:
+    def find_by_id_with_lock(self, task_id: int) -> Task | None:
+        stmt = (
+            select(Task)
+            .where(
+                Task.id == task_id,
+                Task.is_deleted.is_(False),
+            )
+            .with_for_update()
+        )
+
+        return self.session.execute(stmt).scalar_one_or_none()
+
+    def find_by_id_with_sections(self, task_id: int) -> Task | None:
         stmt = (
             select(Task)
             .options(
@@ -36,21 +48,12 @@ class TaskRepository:
         result = self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    def find_by_id_with_lock(self, task_id: int) -> Task | None:
+    def find_all_with_sections(self) -> list[Task]:
         stmt = (
             select(Task)
-            .where(
-                Task.id == task_id,
-                Task.is_deleted.is_(False),
+            .options(
+                selectinload(Task.task_sections.and_(TaskSection.is_deleted.is_(False))),
             )
-            .with_for_update()
-        )
-
-        return self.session.execute(stmt).scalar_one_or_none()
-
-    def find_all(self) -> list[Task]:
-        stmt = (
-            select(Task)
             .where(
                 Task.is_deleted.is_(False),
             )

@@ -1,7 +1,7 @@
 from typing import Any
 
 
-def reject_if_null(value: Any) -> Any:
+def reject_null(value: Any) -> Any:
     """
     부분 수정 (JSON Merge Patch) 요청 DTO 에서 "필드 생략"과 "명시적 null"을 구분하기 위한 validator.
 

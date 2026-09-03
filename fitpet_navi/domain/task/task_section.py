@@ -6,12 +6,10 @@ from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, Text, U
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from fitpet_navi.domain.support.base import BaseMixin, SoftDeleteMixin
+from fitpet_navi.domain.task.constants import EXAMPLE_MARKER
 
 if TYPE_CHECKING:
     from fitpet_navi.domain.task.task import Task
-
-
-_EXAMPLE_MARKER = "(예:"
 
 
 class TaskSection(BaseMixin, SoftDeleteMixin):
@@ -53,8 +51,8 @@ class TaskSection(BaseMixin, SoftDeleteMixin):
         )
 
     @property
-    def marker_count(self) -> int:
-        return self.body.count(_EXAMPLE_MARKER)
+    def example_marker_count(self) -> int:
+        return self.body.count(EXAMPLE_MARKER)
 
     _UPDATABLE_FIELDS = {"body"}
 

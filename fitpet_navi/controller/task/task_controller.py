@@ -9,7 +9,7 @@ from fitpet_navi.controller.task.dto.task_request_dto import (
     TaskUpdateRequestDto,
 )
 from fitpet_navi.controller.task.dto.task_response_dto import (
-    TaskDetailResponseDto,
+    SimpleTaskResponseDto,
     TaskResponseDto,
     TaskSectionResponseDto,
     TaskSectionTemplateDto,
@@ -74,26 +74,26 @@ async def get_tasks(
 @task_router.get(
     "/{task_id}",
     status_code=status.HTTP_200_OK,
-    response_model=TaskDetailResponseDto,
+    response_model=TaskResponseDto,
 )
 async def get_task(
     task_id: int,
     db: Session = Depends(get_db),
-) -> TaskDetailResponseDto:
+) -> TaskResponseDto:
     service = TaskService(db)
     task = service.get_task(task_id)
-    return TaskDetailResponseDto.model_validate(task)
+    return TaskResponseDto.model_validate(task)
 
 
 @task_router.post(
     "",
     status_code=status.HTTP_201_CREATED,
-    response_model=TaskDetailResponseDto,
+    response_model=TaskResponseDto,
 )
 async def create_task(
     request_dto: TaskCreateRequestDto,
     db: Session = Depends(get_db),
-) -> TaskDetailResponseDto:
+) -> TaskResponseDto:
     service = TaskService(db)
     task = service.create_task(
         title=request_dto.title,
@@ -103,39 +103,67 @@ async def create_task(
         display_order=request_dto.display_order,
         priority=request_dto.priority,
     )
-    return TaskDetailResponseDto.model_validate(task)
+    return TaskResponseDto.model_validate(task)
 
 
 @task_router.patch(
     "/reorder",
     status_code=status.HTTP_200_OK,
-    response_model=list[TaskResponseDto],
+    response_model=list[SimpleTaskResponseDto],
 )
 async def reorder_tasks(
     request_dto: TaskReorderRequestDto,
     db: Session = Depends(get_db),
-) -> list[TaskResponseDto]:
+) -> list[SimpleTaskResponseDto]:
     service = TaskService(db)
     tasks = service.reorder_tasks(request_dto.ordered_task_ids)
-    return [TaskResponseDto.model_validate(t) for t in tasks]
+    return [SimpleTaskResponseDto.model_validate(t) for t in tasks]
 
 
 @task_router.patch(
     "/{task_id}",
     status_code=status.HTTP_200_OK,
-    response_model=TaskResponseDto,
+    response_model=SimpleTaskResponseDto,
 )
 async def update_task(
     task_id: int,
     request_dto: TaskUpdateRequestDto,
     db: Session = Depends(get_db),
-) -> TaskResponseDto:
+) -> SimpleTaskResponseDto:
     update_data = request_dto.model_dump(exclude_unset=True)
     request_version = update_data.pop("version")
 
     service = TaskService(db)
     task = service.update_task_with_version(task_id, request_version, **update_data)
-    return TaskResponseDto.model_validate(task)
+    return SimpleTaskResponseDto.model_validate(task)
+
+
+@task_router.patch(
+    "/{task_id}/archive",
+    status_code=status.HTTP_200_OK,
+    response_model=SimpleTaskResponseDto,
+)
+async def archive_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+) -> SimpleTaskResponseDto:
+    service = TaskService(db)
+    task = service.archive_task(task_id)
+    return SimpleTaskResponseDto.model_validate(task)
+
+
+@task_router.patch(
+    "/{task_id}/unarchive",
+    status_code=status.HTTP_200_OK,
+    response_model=SimpleTaskResponseDto,
+)
+async def unarchive_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+) -> SimpleTaskResponseDto:
+    service = TaskService(db)
+    task = service.unarchive_task(task_id)
+    return SimpleTaskResponseDto.model_validate(task)
 
 
 @task_router.patch(

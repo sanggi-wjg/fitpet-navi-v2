@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fitpet_navi.core.enums import TaskTypeEnum
+from fitpet_navi.domain.task.enums import TaskTypeEnum
 from fitpet_navi.domain.task.task_section import TaskSection
 
 

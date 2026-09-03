@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 
-from fitpet_navi.controller.support.validators import reject_if_null
-from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
+from fitpet_navi.controller.support.validators import reject_null
+from fitpet_navi.domain.task.enums import TaskStatusEnum, TaskTypeEnum
 
 
 class TaskCreateRequestDto(BaseModel):
@@ -25,7 +25,7 @@ class TaskUpdateRequestDto(BaseModel):
     version: int = Field(..., description="태스크 버전")
 
     # Json merge patch를 위해 pydantic에 MISSING 이라는 SENTINEL 값이 있긴한데 실험 기능 단계라 사용 안함
-    reject_null_fields = field_validator("title", "status", "priority", mode="before")(reject_if_null)
+    reject_null_fields = field_validator("title", "status", "priority", mode="before")(reject_null)
 
 
 class TaskSectionUpdateRequestDto(BaseModel):

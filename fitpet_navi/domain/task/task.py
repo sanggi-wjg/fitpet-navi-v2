@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
 from fitpet_navi.domain.support.base import BaseMixin, SoftDeleteMixin
+from fitpet_navi.domain.task.enums import TaskStatusEnum, TaskTypeEnum
+from fitpet_navi.util.util_datetime import get_utc_now
 
 if TYPE_CHECKING:
     from fitpet_navi.domain.task.task_section import TaskSection
@@ -67,13 +68,18 @@ class Task(BaseMixin, SoftDeleteMixin):
             priority=priority,
         )
 
-    _UPDATABLE_FIELDS = {"title", "tags", "status", "priority"}
-
     def update_display_order(self, display_order: int):
         self.display_order = display_order
 
-    # def increase_version(self):
-    #     self.version += 1
+    def archive(self):
+        self.is_archived = True
+        self.archived_at = get_utc_now()
+
+    def unarchive(self):
+        self.is_archived = False
+        self.archived_at = None
+
+    _UPDATABLE_FIELDS = {"title", "tags", "status", "priority"}
 
     def update_fields(self, **fields) -> bool:
         any_changed = False

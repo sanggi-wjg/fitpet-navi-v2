@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from fitpet_navi.core.enums import TaskStatusEnum
+from fitpet_navi.domain.task.enums import TaskStatusEnum
 
 
 class TaskQuery(BaseModel):

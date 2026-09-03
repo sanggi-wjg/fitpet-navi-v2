@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
+from fitpet_navi.domain.task.enums import TaskStatusEnum, TaskTypeEnum
 
 
 class TaskSectionTemplateDto(BaseModel):
@@ -19,7 +19,22 @@ class TaskTypeTemplate(BaseModel):
     sections: list[TaskSectionTemplateDto]
 
 
-class TaskResponseDto(BaseModel):
+class TaskSectionResponseDto(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    task_id: int
+    name: str
+    body: str
+    display_order: int
+    is_required: bool
+    version: int
+    example_marker_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class SimpleTaskResponseDto(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -36,19 +51,5 @@ class TaskResponseDto(BaseModel):
     updated_at: datetime
 
 
-class TaskSectionResponseDto(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    task_id: int
-    name: str
-    body: str
-    display_order: int
-    is_required: bool
-    version: int
-    created_at: datetime
-    updated_at: datetime
-
-
-class TaskDetailResponseDto(TaskResponseDto):
+class TaskResponseDto(SimpleTaskResponseDto):
     task_sections: list[TaskSectionResponseDto]

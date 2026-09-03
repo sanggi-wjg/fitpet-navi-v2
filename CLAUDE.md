@@ -47,7 +47,7 @@ DTO는 `controller/<domain>/dto/` 에 `*RequestDto` / `*ResponseDto`. 응답 DTO
 
 ### 태스크와 섹션
 
-`Task` 1 : N `TaskSection`. 섹션 집합은 `domain/task/task_section_template.py`의 타입별 템플릿이 정하고 **태스크 생성 시 확정**된다 — 추가·삭제·순서 변경 API 없음. 템플릿 본문의 `(예:` 마커 수가 `marker_count`(예제 텍스트 잔존 여부 판정)다. `GET /api/v1/tasks/templates`가 템플릿을 그대로 노출한다.
+`Task` 1 : N `TaskSection`. 섹션 집합은 `domain/task/task_section_template.py`의 타입별 템플릿이 정하고 **태스크 생성 시 확정**된다 — 추가·삭제·순서 변경 API 없음. 템플릿 본문의 예제 마커(`domain/task/constants.py`의 `EXAMPLE_MARKER`) 수가 `example_marker_count`(예제 텍스트 잔존 여부 판정)다. `GET /api/v1/tasks/templates`가 템플릿을 그대로 노출한다.
 
 ### 버전과 낙관적 잠금
 
@@ -100,7 +100,8 @@ DTO는 `controller/<domain>/dto/` 에 `*RequestDto` / `*ResponseDto`. 응답 DTO
 - 파일 `*_test.py`, 클래스 `*Test`, 메서드 `test_*` (pytest 설정이 이 패턴만 수집한다. `test_*.py`는 **수집되지 않는다**).
 - `tests/conftest.py`: 세션 스코프 MySQL 컨테이너 (`mysql:8.0`) + `create_all`. 함수 스코프 `db_session`은 commit 없이 close되어 테스트 간 롤백된다. `task_fixture`는 기본값을 덮어쓰는 팩토리 (`task_fixture(title=..., display_order=...)`).
 - `tests/controller/conftest.py`: `client` 픽스처가 `get_db`를 `db_session`으로 override한 `TestClient`.
-- 서비스 단위 테스트보다 **컨트롤러 (HTTP) 테스트**를 우선한다. `# given / # when / # then` 주석으로 구분.
+- **테스트 범위 정책 (간소화)**: controller → service → repository 레이어 중 **컨트롤러 (HTTP) 테스트만 작성한다**. 서비스·리포지토리·도메인 엔티티의 단위 테스트는 만들지 않는다 — 그 로직은 컨트롤러 테스트가 HTTP 경유로 검증한다. 레이어에 속하지 않는 `util` 등의 순수 함수는 별도 단위 테스트를 둔다 (`tests/util/`).
+- `# given / # when / # then` 주석으로 구분.
 - `pyproject.toml`의 `[tool.pytest.ini_options] env`가 더미 설정을 주입하므로 `.env` 없이도 돈다.
 
 ## 컨벤션
@@ -110,4 +111,4 @@ DTO는 `controller/<domain>/dto/` 에 `*RequestDto` / `*ResponseDto`. 응답 DTO
 - pyright `standard` 모드 통과 필수 (pre-commit hook).
 - 새 라우터는 `main.py`에서 `app.include_router()`로 등록. API prefix는 `/api/v1/...`.
 - 경로 파라미터 라우트 (`/{task_id}`)보다 고정 경로 라우트 (`/reorder`, `/templates`)를 **먼저** 선언할 것.
-- Enum은 `core/enums.py`의 `StrEnum`. DB에는 `String` 컬럼으로 저장한다.
+- Enum·상수는 도메인별로 `domain/<domain>/enums.py`, `domain/<domain>/constants.py`에 둔다 (`domain/task/enums.py`의 `StrEnum` 참고). DB에는 `String` 컬럼으로 저장한다. `core`에는 도메인을 아는 값을 두지 않는다.

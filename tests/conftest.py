@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from testcontainers.community.mysql import MySqlContainer
 
 from fitpet_navi.core.database import Base
-from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
+from fitpet_navi.domain.task.enums import TaskStatusEnum, TaskTypeEnum
 from fitpet_navi.domain.task.task import Task
 
 

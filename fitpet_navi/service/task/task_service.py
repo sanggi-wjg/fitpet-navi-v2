@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
 from fitpet_navi.core.exceptions import OptimisticLockException, TaskNotFoundException, TaskSectionNotFoundException
+from fitpet_navi.domain.task.enums import TaskStatusEnum, TaskTypeEnum
 from fitpet_navi.domain.task.task import Task
 from fitpet_navi.domain.task.task_section import TaskSection
 from fitpet_navi.domain.task.task_section_template import create_task_sections_factory
@@ -15,10 +15,10 @@ class TaskService:
         self.task_section_repository = TaskSectionRepository(session)
 
     def get_tasks(self) -> list[Task]:
-        return self.task_repository.find_all()
+        return self.task_repository.find_all_with_sections()
 
     def get_task(self, task_id: int) -> Task:
-        task = self.task_repository.find_by_id_with_related(task_id)
+        task = self.task_repository.find_by_id_with_sections(task_id)
         if task is None:
             raise TaskNotFoundException(task_id)
         return task
@@ -56,6 +56,22 @@ class TaskService:
                 task.update_display_order(new_order)
 
         return sorted(tasks, key=lambda t: t.display_order)
+
+    def archive_task(self, task_id: int) -> Task:
+        task = self.task_repository.find_by_id_with_lock(task_id)
+        if task is None:
+            raise TaskNotFoundException(task_id)
+
+        task.archive()
+        return task
+
+    def unarchive_task(self, task_id: int) -> Task:
+        task = self.task_repository.find_by_id_with_lock(task_id)
+        if task is None:
+            raise TaskNotFoundException(task_id)
+
+        task.unarchive()
+        return task
 
     def update_task_with_version(
         self,
