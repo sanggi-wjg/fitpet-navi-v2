@@ -3,18 +3,21 @@ from sqlalchemy.orm import Session
 from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
 from fitpet_navi.core.exceptions import OptimisticLockException, TaskNotFoundException
 from fitpet_navi.domain.task.task import Task
+from fitpet_navi.domain.task.task_section_template import create_task_sections_factory
 from fitpet_navi.repository.task_repository import TaskRepository
+from fitpet_navi.repository.task_section_repository import TaskSectionRepository
 
 
 class TaskService:
     def __init__(self, session: Session):
         self.task_repository = TaskRepository(session)
+        self.task_section_repository = TaskSectionRepository(session)
 
     def get_tasks(self) -> list[Task]:
         return self.task_repository.find_all()
 
     def get_task(self, task_id: int) -> Task:
-        task = self.task_repository.find_by_id(task_id)
+        task = self.task_repository.find_by_id_with_related(task_id)
         if task is None:
             raise TaskNotFoundException(task_id)
         return task
@@ -38,7 +41,8 @@ class TaskService:
                 priority=priority,
             )
         )
-
+        task_sections = create_task_sections_factory(task_type, new_task.id)
+        self.task_section_repository.save_all(task_sections)
         return new_task
 
     def reorder_tasks(self, ordered_task_ids: list[int]) -> list[Task]:

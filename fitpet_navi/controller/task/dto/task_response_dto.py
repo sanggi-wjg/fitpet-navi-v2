@@ -1,22 +1,27 @@
-from __future__ import annotations
-
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
 
-if TYPE_CHECKING:
-    from fitpet_navi.domain.task.task import Task
+
+class TaskSectionTemplateDto(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    body: str
+    display_order: int
+    is_required: bool
 
 
 class TaskTypeTemplate(BaseModel):
     task_type: TaskTypeEnum
-    template: str
+    sections: list[TaskSectionTemplateDto]
 
 
 class TaskResponseDto(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     tags: str | None
@@ -30,19 +35,20 @@ class TaskResponseDto(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    @classmethod
-    def from_entity(cls, entity: Task) -> TaskResponseDto:
-        return cls(
-            id=entity.id,
-            title=entity.title,
-            tags=entity.tags,
-            task_type=entity.task_type,
-            status=entity.status,
-            display_order=entity.display_order,
-            priority=entity.priority,
-            is_archived=entity.is_archived,
-            archived_at=entity.archived_at,
-            version=entity.version,
-            created_at=entity.created_at,
-            updated_at=entity.updated_at,
-        )
+
+class TaskSectionResponseDto(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    task_id: int
+    name: str
+    body: str
+    display_order: int
+    is_required: bool
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class TaskDetailResponseDto(TaskResponseDto):
+    task_sections: list[TaskSectionResponseDto]

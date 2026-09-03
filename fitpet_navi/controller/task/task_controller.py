@@ -7,9 +7,14 @@ from fitpet_navi.controller.task.dto.task_request_dto import (
     TaskReorderRequestDto,
     TaskUpdateRequestDto,
 )
-from fitpet_navi.controller.task.dto.task_response_dto import TaskResponseDto, TaskTypeTemplate
+from fitpet_navi.controller.task.dto.task_response_dto import (
+    TaskDetailResponseDto,
+    TaskResponseDto,
+    TaskSectionTemplateDto,
+    TaskTypeTemplate,
+)
 from fitpet_navi.core.database import get_db
-from fitpet_navi.domain.task.task_type_template import get_template_by_task_type
+from fitpet_navi.domain.task.task_section_template import get_section_templates_by_task_type
 from fitpet_navi.service.task.task_service import TaskService
 
 task_router = APIRouter(
@@ -43,8 +48,11 @@ task_router = APIRouter(
 )
 async def get_templates() -> list[TaskTypeTemplate]:
     return [
-        TaskTypeTemplate(task_type=task_type, template=template)
-        for task_type, template in get_template_by_task_type().items()
+        TaskTypeTemplate(
+            task_type=task_type,
+            sections=[TaskSectionTemplateDto.model_validate(template) for template in templates],
+        )
+        for task_type, templates in get_section_templates_by_task_type().items()
     ]
 
 
@@ -58,21 +66,21 @@ async def get_tasks(
 ) -> list[TaskResponseDto]:
     service = TaskService(db)
     tasks = service.get_tasks()
-    return [TaskResponseDto.from_entity(t) for t in tasks]
+    return [TaskResponseDto.model_validate(t) for t in tasks]
 
 
 @task_router.get(
     "/{task_id}",
     status_code=status.HTTP_200_OK,
-    response_model=TaskResponseDto,
+    response_model=TaskDetailResponseDto,
 )
 async def get_task(
     task_id: int,
     db: Session = Depends(get_db),
-) -> TaskResponseDto:
+) -> TaskDetailResponseDto:
     service = TaskService(db)
     task = service.get_task(task_id)
-    return TaskResponseDto.from_entity(task)
+    return TaskDetailResponseDto.model_validate(task)
 
 
 @task_router.post(
@@ -93,7 +101,7 @@ async def create_task(
         display_order=request_dto.display_order,
         priority=request_dto.priority,
     )
-    return TaskResponseDto.from_entity(task)
+    return TaskResponseDto.model_validate(task)
 
 
 @task_router.patch(
@@ -107,7 +115,7 @@ async def reorder_tasks(
 ) -> list[TaskResponseDto]:
     service = TaskService(db)
     tasks = service.reorder_tasks(request_dto.ordered_task_ids)
-    return [TaskResponseDto.from_entity(t) for t in tasks]
+    return [TaskResponseDto.model_validate(t) for t in tasks]
 
 
 @task_router.patch(
@@ -125,4 +133,4 @@ async def update_task(
 
     service = TaskService(db)
     task = service.update_task_with_version(task_id, request_version, **update_data)
-    return TaskResponseDto.from_entity(task)
+    return TaskResponseDto.model_validate(task)

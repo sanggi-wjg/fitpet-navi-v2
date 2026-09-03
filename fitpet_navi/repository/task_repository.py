@@ -1,5 +1,5 @@
 from sqlalchemy import CursorResult, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 
 from fitpet_navi.domain.task.task import Task
 
@@ -8,15 +8,30 @@ class TaskRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def save(self, entity: Task) -> Task:
-        self.session.add(entity)
+    def save(self, task: Task) -> Task:
+        self.session.add(task)
         self.session.flush()
-        return entity
+        return task
 
     def find_by_id(self, task_id: int) -> Task | None:
         stmt = select(Task).where(
             Task.id == task_id,
             Task.is_deleted.is_(False),
+        )
+        result = self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    def find_by_id_with_related(self, task_id: int) -> Task | None:
+        stmt = (
+            select(Task)
+            .join(Task.task_sections)
+            .options(
+                contains_eager(Task.task_sections),
+            )
+            .where(
+                Task.id == task_id,
+                Task.is_deleted.is_(False),
+            )
         )
         result = self.session.execute(stmt)
         return result.scalar_one_or_none()
