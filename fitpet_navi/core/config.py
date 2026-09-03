@@ -62,6 +62,23 @@ class MySQLDatabaseProperty(BaseModel):
         return f"mysql+pymysql://{self.user}:{encoded_password}@{self.host}:{self.port}/{self.database}"
 
 
+class OllamaProperty(BaseModel):
+    """
+    - 로컬 데몬 경유: host=http://localhost:11434, model=`...-cloud`, api_key 불필요.
+    - Cloud 직접 접속: host=https://ollama.com, model=접미사 없는 태그, api_key 필수.
+    """
+
+    host: str = "http://localhost:11434"
+    api_key: str = ""
+    model: str = "gpt-oss:120b-cloud"
+    think: Literal["low", "medium", "high"] | bool = "low"
+    timeout_seconds: float = 60.0
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+
+
 class DirectoryProperty(BaseModel):
     base: str = str(_PROJECT_ROOT)
 
@@ -80,6 +97,7 @@ class Settings(BaseSettings):
 
     debug: bool
     database: MySQLDatabaseProperty
+    ollama: OllamaProperty
     directory: DirectoryProperty = DirectoryProperty()
 
     def __init__(self, **kwargs):

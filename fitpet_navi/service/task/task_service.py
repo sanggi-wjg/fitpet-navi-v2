@@ -1,22 +1,26 @@
 from sqlalchemy.orm import Session
 
-from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
-from fitpet_navi.core.exceptions import NotFoundException
+from fitpet_navi.core.exceptions import OptimisticLockException, TaskNotFoundException, TaskSectionNotFoundException
+from fitpet_navi.domain.task.enums import TaskStatusEnum, TaskTypeEnum
 from fitpet_navi.domain.task.task import Task
+from fitpet_navi.domain.task.task_section import TaskSection
+from fitpet_navi.domain.task.task_section_template import create_task_sections_factory
 from fitpet_navi.repository.task_repository import TaskRepository
+from fitpet_navi.repository.task_section_repository import TaskSectionRepository
 
 
 class TaskService:
     def __init__(self, session: Session):
         self.task_repository = TaskRepository(session)
+        self.task_section_repository = TaskSectionRepository(session)
 
     def get_tasks(self) -> list[Task]:
-        return self.task_repository.find_all()
+        return self.task_repository.find_all_with_sections()
 
     def get_task(self, task_id: int) -> Task:
-        task = self.task_repository.find_by_id(task_id)
+        task = self.task_repository.find_by_id_with_sections(task_id)
         if task is None:
-            raise NotFoundException(f"Task를 찾을수 없습니다. id: {task_id}")
+            raise TaskNotFoundException(task_id)
         return task
 
     def create_task(
@@ -24,15 +28,13 @@ class TaskService:
         title: str,
         task_type: TaskTypeEnum,
         status: TaskStatusEnum,
-        content: str,
         tags: str | None,
         display_order: int,
         priority: int,
     ) -> Task:
-        return self.task_repository.save(
+        new_task = self.task_repository.save(
             Task.create(
                 title=title,
-                content=content,
                 tags=tags,
                 task_type=task_type,
                 status=status,
@@ -40,20 +42,75 @@ class TaskService:
                 priority=priority,
             )
         )
+        task_sections = create_task_sections_factory(task_type, new_task.id)
+        self.task_section_repository.save_all(task_sections)
+        return new_task
 
-    def reorder_tasks(self, task_ids: list[int]) -> list[Task]:
-        tasks = self.task_repository.find_all_by_ids(task_ids)
+    def reorder_tasks(self, ordered_task_ids: list[int]) -> list[Task]:
+        tasks = self.task_repository.find_all_by_ids(ordered_task_ids)
         task_map = {task.id: task for task in tasks}
 
-        for order, task_id in enumerate(task_ids):
+        for new_order, task_id in enumerate(ordered_task_ids):
             task = task_map.get(task_id)
             if task is not None:
-                task.display_order = order
+                task.update_display_order(new_order)
 
         return sorted(tasks, key=lambda t: t.display_order)
 
-    def update_task(self, task_id: int, **update_data) -> Task:
+    def archive_task(self, task_id: int) -> Task:
         task = self.task_repository.find_by_id_with_lock(task_id)
         if task is None:
-            raise NotFoundException(f"Task를 찾을수 없습니다. id: {task_id}")
-        return task.update(**update_data)
+            raise TaskNotFoundException(task_id)
+
+        task.archive()
+        return task
+
+    def unarchive_task(self, task_id: int) -> Task:
+        task = self.task_repository.find_by_id_with_lock(task_id)
+        if task is None:
+            raise TaskNotFoundException(task_id)
+
+        task.unarchive()
+        return task
+
+    def update_task_with_version(
+        self,
+        task_id: int,
+        request_version: int,
+        **update_data,
+    ) -> Task:
+        task = self.task_repository.find_by_id(task_id)
+        if task is None:
+            raise TaskNotFoundException(task_id)
+
+        if task.version != request_version:
+            raise OptimisticLockException()
+
+        any_changed = task.update_fields(**update_data)
+        if any_changed:
+            update_version_result = self.task_repository.increase_version(task_id, request_version)
+            if not update_version_result:
+                raise OptimisticLockException()
+        return task
+
+    def update_section_with_version(
+        self,
+        task_id: int,
+        section_id: int,
+        request_version: int,
+        **update_data,
+    ) -> TaskSection:
+        task_section = self.task_section_repository.find_by_id(task_id, section_id)
+        if task_section is None:
+            raise TaskSectionNotFoundException(section_id)
+
+        if task_section.version != request_version:
+            raise OptimisticLockException()
+
+        any_changed = task_section.update_fields(**update_data)
+        if any_changed:
+            update_version_result = self.task_section_repository.increase_version(section_id, request_version)
+            if not update_version_result:
+                raise OptimisticLockException()
+
+        return task_section

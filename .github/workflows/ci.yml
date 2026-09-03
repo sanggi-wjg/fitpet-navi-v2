@@ -1,0 +1,37 @@
+name: ✅ Build
+
+on:
+  pull_request:
+
+jobs:
+  lint-and-typecheck-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: "0.11.29"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.14
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: ✅ Run Ruff (lint)
+        run: uv run ruff check --output-format=github .
+
+      - name: ✅ Run Ruff (format check)
+        run: uv run ruff format --check --diff .
+
+      - name: ✅ Run Pyright (type check)
+        run: uv run pyright
+
+      - name: 🚀 Run Pytest
+        run: uv run pytest
