@@ -5,11 +5,13 @@ from fitpet_navi.controller.support.error_response_dto import ErrorResponseDto
 from fitpet_navi.controller.task.dto.task_request_dto import (
     TaskCreateRequestDto,
     TaskReorderRequestDto,
+    TaskSectionUpdateRequestDto,
     TaskUpdateRequestDto,
 )
 from fitpet_navi.controller.task.dto.task_response_dto import (
     TaskDetailResponseDto,
     TaskResponseDto,
+    TaskSectionResponseDto,
     TaskSectionTemplateDto,
     TaskTypeTemplate,
 )
@@ -86,12 +88,12 @@ async def get_task(
 @task_router.post(
     "",
     status_code=status.HTTP_201_CREATED,
-    response_model=TaskResponseDto,
+    response_model=TaskDetailResponseDto,
 )
 async def create_task(
     request_dto: TaskCreateRequestDto,
     db: Session = Depends(get_db),
-) -> TaskResponseDto:
+) -> TaskDetailResponseDto:
     service = TaskService(db)
     task = service.create_task(
         title=request_dto.title,
@@ -101,7 +103,7 @@ async def create_task(
         display_order=request_dto.display_order,
         priority=request_dto.priority,
     )
-    return TaskResponseDto.model_validate(task)
+    return TaskDetailResponseDto.model_validate(task)
 
 
 @task_router.patch(
@@ -134,3 +136,22 @@ async def update_task(
     service = TaskService(db)
     task = service.update_task_with_version(task_id, request_version, **update_data)
     return TaskResponseDto.model_validate(task)
+
+
+@task_router.patch(
+    "/{task_id}/sections/{section_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=TaskSectionResponseDto,
+)
+async def update_task_section(
+    task_id: int,
+    section_id: int,
+    request_dto: TaskSectionUpdateRequestDto,
+    db: Session = Depends(get_db),
+) -> TaskSectionResponseDto:
+    update_data = request_dto.model_dump(exclude_unset=True)
+    request_version = update_data.pop("version")
+
+    service = TaskService(db)
+    task_section = service.update_section_with_version(task_id, section_id, request_version, **update_data)
+    return TaskSectionResponseDto.model_validate(task_section)

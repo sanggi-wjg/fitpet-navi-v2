@@ -79,20 +79,21 @@ class TaskService:
 
     def update_section_with_version(
         self,
-        task_section_id: int,
+        task_id: int,
+        section_id: int,
         request_version: int,
         **update_data,
     ) -> TaskSection:
-        task_section = self.task_section_repository.find_by_id(task_section_id)
+        task_section = self.task_section_repository.find_by_id(task_id, section_id)
         if task_section is None:
-            raise TaskSectionNotFoundException(task_section_id)
+            raise TaskSectionNotFoundException(section_id)
 
         if task_section.version != request_version:
             raise OptimisticLockException()
 
         any_changed = task_section.update_fields(**update_data)
         if any_changed:
-            update_version_result = self.task_section_repository.increase_version(task_section_id, request_version)
+            update_version_result = self.task_section_repository.increase_version(section_id, request_version)
             if not update_version_result:
                 raise OptimisticLockException()
 

@@ -1,6 +1,7 @@
 from sqlalchemy import CursorResult, select, update
 from sqlalchemy.orm import Session
 
+from fitpet_navi.domain.task.task import Task
 from fitpet_navi.domain.task.task_section import TaskSection
 
 
@@ -13,10 +14,18 @@ class TaskSectionRepository:
         self.session.flush()
         return task_sections
 
-    def find_by_id(self, task_section_id: int) -> TaskSection | None:
-        stmt = select(TaskSection).where(
-            TaskSection.id == task_section_id,
-            TaskSection.is_deleted.is_(False),
+    def find_by_id(self, task_id: int, task_section_id: int) -> TaskSection | None:
+        stmt = (
+            select(TaskSection)
+            .join(
+                Task,
+                Task.id == TaskSection.task_id.and_(Task.is_deleted.is_(False)),
+            )
+            .where(
+                Task.id == task_id,
+                TaskSection.id == task_section_id,
+                TaskSection.is_deleted.is_(False),
+            )
         )
         result = self.session.execute(stmt)
         return result.scalar_one_or_none()
