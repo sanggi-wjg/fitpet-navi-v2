@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from fitpet_navi.domain.support.base import Base, SoftDeleteMixin
+from fitpet_navi.domain.support.base import BaseMixin, SoftDeleteMixin
 
 if TYPE_CHECKING:
     from fitpet_navi.domain.task.task import Task
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 _EXAMPLE_MARKER = "(예:"
 
 
-class TaskSection(Base, SoftDeleteMixin):
+class TaskSection(BaseMixin, SoftDeleteMixin):
     __tablename__ = "task_section"
     __table_args__ = {"comment": "태스크 섹션"}
 
@@ -55,14 +55,15 @@ class TaskSection(Base, SoftDeleteMixin):
 
     _UPDATABLE_FIELDS = {"body"}
 
-    def update(self, **fields) -> TaskSection:
-        body_changed = "body" in fields and fields["body"] != self.body
+    def update_fields(self, **fields) -> bool:
+        any_changed = False
 
         for key, value in fields.items():
             if key not in self._UPDATABLE_FIELDS:
                 raise ValueError(f"Field '{key}' is not updatable")
-            setattr(self, key, value)
 
-        if body_changed:
-            self.version += 1
-        return self
+            if hasattr(self, key) and getattr(self, key) != value:
+                setattr(self, key, value)
+                any_changed = True
+
+        return any_changed

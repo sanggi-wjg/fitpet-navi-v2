@@ -1,7 +1,8 @@
 from sqlalchemy import CursorResult, select, update
-from sqlalchemy.orm import Session, contains_eager
+from sqlalchemy.orm import Session, selectinload
 
 from fitpet_navi.domain.task.task import Task
+from fitpet_navi.domain.task.task_section import TaskSection
 
 
 class TaskRepository:
@@ -24,9 +25,8 @@ class TaskRepository:
     def find_by_id_with_related(self, task_id: int) -> Task | None:
         stmt = (
             select(Task)
-            .join(Task.task_sections)
             .options(
-                contains_eager(Task.task_sections),
+                selectinload(Task.task_sections.and_(TaskSection.is_deleted.is_(False))),
             )
             .where(
                 Task.id == task_id,

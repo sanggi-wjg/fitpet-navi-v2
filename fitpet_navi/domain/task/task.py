@@ -7,13 +7,13 @@ from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
-from fitpet_navi.domain.support.base import Base, SoftDeleteMixin
+from fitpet_navi.domain.support.base import BaseMixin, SoftDeleteMixin
 
 if TYPE_CHECKING:
     from fitpet_navi.domain.task.task_section import TaskSection
 
 
-class Task(Base, SoftDeleteMixin):
+class Task(BaseMixin, SoftDeleteMixin):
     __tablename__ = "task"
     __table_args__ = {"comment": "태스크"}
 
@@ -39,7 +39,11 @@ class Task(Base, SoftDeleteMixin):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="버전")
 
     # relationship
-    task_sections: Mapped[list["TaskSection"]] = relationship("TaskSection", back_populates="task")
+    task_sections: Mapped[list["TaskSection"]] = relationship(
+        "TaskSection",
+        back_populates="task",
+        order_by="TaskSection.display_order",
+    )
 
     def __repr__(self) -> str:
         return f"<Task(id={self.id}, title={self.title}, status={self.status})>"

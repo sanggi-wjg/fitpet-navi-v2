@@ -14,6 +14,12 @@ class TaskNotFoundException(NotFoundException):
         super().__init__(f"id가 {task_id}인 Task를 찾을 수 없습니다")
 
 
+class TaskSectionNotFoundException(NotFoundException):
+    def __init__(self, task_section_id: int):
+        self.task_section_id = task_section_id
+        super().__init__(f"id가 {task_section_id}인 TaskSection를 찾을 수 없습니다")
+
+
 class OptimisticLockException(ServiceException):
     def __init__(self, message: str = "다른 사용자가 먼저 수정했습니다. 새로고침 후 다시 시도해 주세요."):
         super().__init__(message)

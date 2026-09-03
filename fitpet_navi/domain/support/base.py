@@ -1,12 +1,16 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, func, text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
+
+from fitpet_navi.core.database import Base
 
 _NOT_DELETED = datetime(9999, 12, 31, 14, 59, 59, tzinfo=timezone.utc)
 
 
-class Base(DeclarativeBase):
+class BaseMixin(Base):
+    __abstract__ = True
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -27,7 +31,7 @@ class Base(DeclarativeBase):
 class SoftDeleteMixin:
     deleted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=text("'9999-12-31 14:59:59+00'"),
+        server_default=text("'9999-12-31 14:59:59.000000'"),
         default=_NOT_DELETED,
         nullable=False,
         comment="삭제일시",

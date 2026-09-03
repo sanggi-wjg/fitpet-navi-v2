@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 
 from fitpet_navi.core.enums import TaskStatusEnum, TaskTypeEnum
-from fitpet_navi.core.exceptions import OptimisticLockException, TaskNotFoundException
+from fitpet_navi.core.exceptions import OptimisticLockException, TaskNotFoundException, TaskSectionNotFoundException
 from fitpet_navi.domain.task.task import Task
+from fitpet_navi.domain.task.task_section import TaskSection
 from fitpet_navi.domain.task.task_section_template import create_task_sections_factory
 from fitpet_navi.repository.task_repository import TaskRepository
 from fitpet_navi.repository.task_section_repository import TaskSectionRepository
@@ -56,7 +57,12 @@ class TaskService:
 
         return sorted(tasks, key=lambda t: t.display_order)
 
-    def update_task_with_version(self, task_id: int, request_version: int, **update_data) -> Task:
+    def update_task_with_version(
+        self,
+        task_id: int,
+        request_version: int,
+        **update_data,
+    ) -> Task:
         task = self.task_repository.find_by_id(task_id)
         if task is None:
             raise TaskNotFoundException(task_id)
@@ -70,3 +76,24 @@ class TaskService:
             if not update_version_result:
                 raise OptimisticLockException()
         return task
+
+    def update_section_with_version(
+        self,
+        task_section_id: int,
+        request_version: int,
+        **update_data,
+    ) -> TaskSection:
+        task_section = self.task_section_repository.find_by_id(task_section_id)
+        if task_section is None:
+            raise TaskSectionNotFoundException(task_section_id)
+
+        if task_section.version != request_version:
+            raise OptimisticLockException()
+
+        any_changed = task_section.update_fields(**update_data)
+        if any_changed:
+            update_version_result = self.task_section_repository.increase_version(task_section_id, request_version)
+            if not update_version_result:
+                raise OptimisticLockException()
+
+        return task_section
