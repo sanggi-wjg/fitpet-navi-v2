@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 import httpx
+from core.exceptions import LlmUnavailableException
 from ollama import Client, ResponseError
 
 from fitpet_navi.core.config import get_settings
@@ -10,25 +11,24 @@ settings = get_settings()
 
 class NaviAgent:
     def __init__(self) -> None:
-        self._property = settings.ollama
-        self._client = Client(
-            host=self._property.host,
-            headers=self._property.headers,
-            timeout=self._property.timeout_seconds,
+        self.property = settings.ollama
+        self.client = Client(
+            host=self.property.host,
+            headers=self.property.headers,
+            timeout=self.property.timeout_seconds,
         )
 
     def chat(self, messages: list[dict[str, str]]) -> str:
         try:
-            response = self._client.chat(
-                model=self._property.model,
+            response = self.client.chat(
+                model=self.property.model,
                 messages=messages,
-                think=self._property.think,
+                think=self.property.think,
                 stream=False,
                 options={"temperature": 0.0},
             )
         except (ResponseError, httpx.HTTPError, OSError, ValueError) as e:
-            raise Exception("Navi 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.") from e
-            # raise LlmUnavailableException("Navi 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.") from e
+            raise LlmUnavailableException() from e
 
         return response.message.content or "" if response.message else ""
 

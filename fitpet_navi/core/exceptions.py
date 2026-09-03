@@ -8,6 +8,10 @@ class NotFoundException(ServiceException):
     pass
 
 
+class LlmException(ServiceException):
+    pass
+
+
 class TaskNotFoundException(NotFoundException):
     def __init__(self, task_id: int):
         self.task_id = task_id
@@ -27,3 +31,8 @@ class OptimisticLockException(ServiceException):
 
 class ClientError(Exception):
     """클라이언트 공통 예외"""
+
+
+class LlmUnavailableException(LlmException):
+    def __init__(self, message: str = "LLM을 사용할 수 없습니다. 잠시 후 다시 시도해주세요."):
+        super().__init__(message)

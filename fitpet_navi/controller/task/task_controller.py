@@ -23,22 +23,10 @@ task_router = APIRouter(
     prefix="/api/v1/tasks",
     tags=["Task"],
     responses={
-        status.HTTP_400_BAD_REQUEST: {
-            "description": "Bad Request",
-            "model": ErrorResponseDto,
-        },
-        status.HTTP_404_NOT_FOUND: {
-            "description": "Not Found",
-            "model": ErrorResponseDto,
-        },
-        status.HTTP_409_CONFLICT: {
-            "description": "Conflict",
-            "model": ErrorResponseDto,
-        },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Internal Server Error",
-            "model": ErrorResponseDto,
-        },
+        status.HTTP_400_BAD_REQUEST: {"description": "Bad Request", "model": ErrorResponseDto},
+        status.HTTP_404_NOT_FOUND: {"description": "Not Found", "model": ErrorResponseDto},
+        status.HTTP_409_CONFLICT: {"description": "Conflict", "model": ErrorResponseDto},
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": ErrorResponseDto},
     },
 )
 
@@ -183,3 +171,14 @@ async def update_task_section(
     service = TaskService(db)
     task_section = service.update_section_with_version(task_id, section_id, request_version, **update_data)
     return TaskSectionResponseDto.model_validate(task_section)
+
+
+@task_router.post(
+    "/{task_id}/chat",
+    status_code=status.HTTP_200_OK,
+)
+async def chat(
+    task_id: int,
+    db: Session = Depends(get_db),
+):
+    pass

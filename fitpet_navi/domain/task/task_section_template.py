@@ -25,8 +25,8 @@ _SECTION_TEMPLATES_BY_TASK_TYPE: dict[TaskTypeEnum, list[TaskSectionTemplate]] =
             body="\n".join(
                 [
                     "- (예: 마케팅 동의 유저에게 알림톡 발송)",
-                    "- (예: 발급 시점 — 생일 당일 09:00)",
-                    "- (예: 적립금 유효기간 — 발급일로부터 30일)",
+                    "- (예: 발급 시점: 생일 당일 09:00)",
+                    "- (예: 적립금 유효기간: 발급일로부터 30일)",
                 ]
             ),
         ),
@@ -53,9 +53,9 @@ _SECTION_TEMPLATES_BY_TASK_TYPE: dict[TaskTypeEnum, list[TaskSectionTemplate]] =
             display_order=1,
             body="\n".join(
                 [
-                    "- (예: 복원 시점 — 취소 승인 즉시)",
-                    "- (예: 복원된 적립금의 유효기간 — 원래 만료일 그대로 유지)",
-                    '- (예: 노출 위치 — 마이페이지 > 적립금 내역에 "주문 취소 복원"으로 표기)',
+                    "- (예: 복원 시점: 취소 승인 즉시)",
+                    "- (예: 복원된 적립금의 유효기간: 원래 만료일 그대로 유지)",
+                    '- (예: 노출 위치: 마이페이지 > 적립금 내역에 "주문 취소 복원"으로 표기)',
                 ]
             ),
         ),
@@ -64,7 +64,7 @@ _SECTION_TEMPLATES_BY_TASK_TYPE: dict[TaskTypeEnum, list[TaskSectionTemplate]] =
             display_order=2,
             body="\n".join(
                 [
-                    "- (예: 부분 취소는 이번 변경 대상이 아니다 — 전체 취소만 해당)",
+                    "- (예: 부분 취소는 이번 변경 대상이 아니다: 전체 취소만 해당)",
                     "- (예: 이미 유효기간이 지난 적립금은 복원하지 않는다)",
                 ]
             ),
@@ -79,16 +79,16 @@ _SECTION_TEMPLATES_BY_TASK_TYPE: dict[TaskTypeEnum, list[TaskSectionTemplate]] =
         TaskSectionTemplate(
             name="배치 주기",
             display_order=1,
-            body="- (예: 매일 09:00 — 실제 주기로 수정하세요)",
+            body="- (예: 매일 09:00: 실제 주기로 수정하세요)",
         ),
         TaskSectionTemplate(
             name="세부사항",
             display_order=2,
             body="\n".join(
                 [
-                    "- (예: 발송 채널 — 알림톡, 실패 시 LMS 대체 발송)",
-                    "- (예: 1회 실행당 대상 규모 — 하루 평균 300명)",
-                    "- (예: 실행 결과 리포트 — 슬랙 #navi-batch 채널에 발송 건수 게시)",
+                    "- (예: 발송 채널: 알림톡, 실패 시 LMS 대체 발송)",
+                    "- (예: 1회 실행당 대상 규모: 하루 평균 300명)",
+                    "- (예: 실행 결과 리포트: 슬랙 #navi-batch 채널에 발송 건수 게시)",
                 ]
             ),
         ),
@@ -125,8 +125,8 @@ _SECTION_TEMPLATES_BY_TASK_TYPE: dict[TaskTypeEnum, list[TaskSectionTemplate]] =
             display_order=3,
             body="\n".join(
                 [
-                    "- (예: 시행일 — 2026-10-01 00:00)",
-                    "- (예: 사전 고지 — 시행 30일 전 앱 푸시 + 공지사항 게시)",
+                    "- (예: 시행일: 2026-10-01 00:00)",
+                    "- (예: 사전 고지: 시행 30일 전 앱 푸시 + 공지사항 게시)",
                     "- (예: 고객센터 안내 문구 갱신 필요)",
                 ]
             ),
