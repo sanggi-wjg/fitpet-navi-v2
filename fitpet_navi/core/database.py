@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, declarative_base, sessionmaker
 
 from fitpet_navi.core.config import get_settings
 
@@ -28,7 +28,7 @@ session_factory = sessionmaker(
     autoflush=_db.autoflush,
     expire_on_commit=_db.expire_on_commit,
 )
-Base = declarative_base()
+Base: type[DeclarativeBase] = declarative_base()
 
 
 def get_db() -> Generator[Session, None, None]:

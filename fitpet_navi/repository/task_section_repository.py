@@ -17,12 +17,10 @@ class TaskSectionRepository:
     def find_by_id(self, task_id: int, task_section_id: int) -> TaskSection | None:
         stmt = (
             select(TaskSection)
-            .join(
-                Task,
-                Task.id == TaskSection.task_id.and_(Task.is_deleted.is_(False)),
-            )
+            .join(Task, Task.id == TaskSection.task_id)
             .where(
                 Task.id == task_id,
+                Task.is_deleted.is_(False),
                 TaskSection.id == task_section_id,
                 TaskSection.is_deleted.is_(False),
             )

@@ -23,10 +23,10 @@ dev = [
     "pyright>=1.1.411",
     "pytest>=9.1.1",
     "pytest-env>=1.7.0",
-    "pytest-freezegun>=0.4.2",
     "ruff>=0.16.5",
     "testcontainers[mysql]>=4.15.0",
     "boto3-stubs (>=1.43.85,<2.0.0)",
+    "freezegun>=1.5.5",
 ]
 
 [tool.ruff]

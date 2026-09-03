@@ -91,3 +91,90 @@ class TaskControllerTest:
         body = response.json()
         assert body["title"] == "수정 후"
         assert body["version"] == 1
+
+    def test_update_task_omitted_fields_are_unchanged(self, client: TestClient, task_fixture: Callable[..., Task]):
+        # given
+        task = task_fixture(title="수정 전", tags="유지", priority=1)
+
+        # when
+        response = client.patch(f"/api/v1/tasks/{task.id}", json={"version": 0, "title": "수정 후"})
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["title"] == "수정 후"
+        assert body["tags"] == "유지"
+        assert body["priority"] == 1
+
+    def test_update_task_null_tags_clears_tags(self, client: TestClient, task_fixture: Callable[..., Task]):
+        # given
+        task = task_fixture(tags="삭제될 태그")
+
+        # when
+        response = client.patch(f"/api/v1/tasks/{task.id}", json={"version": 0, "tags": None})
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["tags"] is None
+        assert body["version"] == 1
+
+    def test_update_task_null_on_not_nullable_field_is_rejected(
+        self, client: TestClient, task_fixture: Callable[..., Task]
+    ):
+        # given
+        task = task_fixture(title="수정 전")
+
+        # when
+        response = client.patch(f"/api/v1/tasks/{task.id}", json={"version": 0, "title": None})
+
+        # then
+        assert response.status_code == 422
+        assert client.get(f"/api/v1/tasks/{task.id}").json()["title"] == "수정 전"
+
+    def test_update_task_section_null_body_is_rejected(self, client: TestClient):
+        # given
+        created = client.post(
+            "/api/v1/tasks", json={"title": "태스크", "task_type": "NEW_FEATURE", "status": "BACKLOG"}
+        ).json()
+        section = created["task_sections"][0]
+
+        # when
+        response = client.patch(
+            f"/api/v1/tasks/{created['id']}/sections/{section['id']}",
+            json={"version": 0, "body": None},
+        )
+
+        # then
+        assert response.status_code == 422
+
+    def test_update_task_section(self, client: TestClient):
+        # given
+        # 첫 번째 task가 아닌 task의 섹션을 대상으로 한다 (task_id 조건 검증)
+        client.post("/api/v1/tasks", json={"title": "첫 번째", "task_type": "NEW_FEATURE", "status": "BACKLOG"})
+        created = client.post(
+            "/api/v1/tasks", json={"title": "두 번째", "task_type": "NEW_FEATURE", "status": "BACKLOG"}
+        ).json()
+        section = created["task_sections"][0]
+
+        # when
+        response = client.patch(
+            f"/api/v1/tasks/{created['id']}/sections/{section['id']}",
+            json={"version": 0, "body": "- 생일인 유저에게 적립금 5,000원 발급"},
+        )
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["id"] == section["id"]
+        assert body["task_id"] == created["id"]
+        assert body["body"] == "- 생일인 유저에게 적립금 5,000원 발급"
+        assert body["version"] == 1
+
+    def test_get_task_not_found(self, client: TestClient):
+        # when
+        response = client.get("/api/v1/tasks/999999")
+
+        # then
+        assert response.status_code == 404
+        assert response.json()["statusText"] == "NOT_FOUND"

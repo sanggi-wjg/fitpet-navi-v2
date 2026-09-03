@@ -68,7 +68,7 @@ class OllamaProperty(BaseModel):
     - Cloud 직접 접속: host=https://ollama.com, model=접미사 없는 태그, api_key 필수.
     """
 
-    host: str
+    host: str = "http://localhost:11434"
     api_key: str = ""
     model: str = "gpt-oss:120b-cloud"
     think: Literal["low", "medium", "high"] | bool = "low"

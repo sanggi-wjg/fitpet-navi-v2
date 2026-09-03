@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from fitpet_navi.domain.support.base import BaseMixin, SoftDeleteMixin
@@ -16,7 +16,10 @@ _EXAMPLE_MARKER = "(예:"
 
 class TaskSection(BaseMixin, SoftDeleteMixin):
     __tablename__ = "task_section"
-    __table_args__ = {"comment": "태스크 섹션"}
+    __table_args__ = (
+        UniqueConstraint("task_id", "name", "deleted_at", name="uk_task_section_001"),
+        {"comment": "태스크 섹션"},
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, comment="섹션 이름 (정책, 예외조건, 등)")
