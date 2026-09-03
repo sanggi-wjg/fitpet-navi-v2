@@ -116,6 +116,6 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     settings = Settings()  # type: ignore[call-arg]
-    for path in [settings.directory.data]:
-        os.makedirs(path, exist_ok=True)
+    # for path in [settings.directory.data]:
+    #     os.makedirs(path, exist_ok=True)
     return settings

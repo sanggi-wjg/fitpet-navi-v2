@@ -36,3 +36,10 @@ class ClientError(Exception):
 class LlmUnavailableException(LlmException):
     def __init__(self, message: str = "LLM을 사용할 수 없습니다. 잠시 후 다시 시도해주세요."):
         super().__init__(message)
+
+
+class LlmContractViolationException(LlmException):
+    """재시도 후에도 LLM 응답이 출력 계약(ProposalPayload)을 만족하지 못했다."""
+
+    def __init__(self, message: str = "Navi 의 제안을 해석하지 못했습니다. 다시 시도해주세요."):
+        super().__init__(message)
