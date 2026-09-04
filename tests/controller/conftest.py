@@ -12,7 +12,8 @@ from main import app
 
 
 @pytest.fixture()
-def client(db_session: Session) -> Generator[TestClient, None, None]:
+def client(db_session: Session, fake_generator: "FakeProposalGenerator") -> Generator[TestClient, None, None]:
+    # fake_generator 에 의존해 모든 컨트롤러 테스트가 실제 LLM 클라이언트를 만들지 않게 한다.
     def override_get_db() -> Generator[Session, None, None]:
         with db_session.begin_nested():
             yield db_session
@@ -42,8 +43,8 @@ class FakeProposalGenerator:
 
 
 @pytest.fixture()
-def fake_generator(client: TestClient) -> Generator[FakeProposalGenerator, None, None]:
-    # client 픽스처 뒤에 등록해야 client 의 teardown(overrides.clear)보다 먼저 정리된다
+def fake_generator() -> Generator[FakeProposalGenerator, None, None]:
+    # client 픽스처가 이 픽스처에 의존하므로 같은 테스트 안에서는 동일 인스턴스를 공유한다.
     fake = FakeProposalGenerator()
     app.dependency_overrides[get_proposal_generator] = lambda: fake
     yield fake

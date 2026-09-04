@@ -52,7 +52,7 @@ class ProposalStaleException(OptimisticLockException):
 
 
 class ProposalAlreadyProcessedException(ServiceException):
-    """PENDING 이 아닌 제안을 다시 수락/거부하려 했다 (400)."""
+    """PENDING 이 아닌 제안을 다시 수락/거부/닫기하려 했다 (400)."""
 
     def __init__(self, proposal_id: int, status: str):
         self.proposal_id = proposal_id

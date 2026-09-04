@@ -27,7 +27,7 @@ class Proposal(BaseMixin, SoftDeleteMixin):
         String(64),
         nullable=False,
         default=ProposalStatusEnum.PENDING,
-        comment="상태 (PENDING / ACCEPTED / REJECTED)",
+        comment="상태 (PENDING / ACCEPTED / REJECTED / CLOSED)",
     )
     reject_reason: Mapped[str | None] = mapped_column(Text, nullable=True, comment="거부 사유")
 
@@ -78,6 +78,10 @@ class Proposal(BaseMixin, SoftDeleteMixin):
     def reject(self, reason: str) -> None:
         self._transition(ProposalStatusEnum.REJECTED)
         self.reject_reason = reason
+
+    def close(self) -> None:
+        # 수락·거부 없이 종결한다. 섹션을 건드리지 않으므로 사유도, 버전 검사도 없다.
+        self._transition(ProposalStatusEnum.CLOSED)
 
     def _transition(self, to: ProposalStatusEnum) -> None:
         if not self.is_pending:

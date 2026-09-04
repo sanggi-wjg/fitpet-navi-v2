@@ -52,7 +52,7 @@ async def get_templates() -> list[TaskTypeTemplate]:
     response_model=list[TaskResponseDto],
 )
 async def get_tasks(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> list[TaskResponseDto]:
     service = TaskService(db)
     tasks = service.get_tasks()
@@ -66,7 +66,7 @@ async def get_tasks(
 )
 async def get_task(
     task_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> TaskResponseDto:
     service = TaskService(db)
     task = service.get_task(task_id)
@@ -80,7 +80,7 @@ async def get_task(
 )
 async def create_task(
     request_dto: TaskCreateRequestDto,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> TaskResponseDto:
     service = TaskService(db)
     task = service.create_task(
@@ -101,7 +101,7 @@ async def create_task(
 )
 async def reorder_tasks(
     request_dto: TaskReorderRequestDto,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> list[SimpleTaskResponseDto]:
     service = TaskService(db)
     tasks = service.reorder_tasks(request_dto.ordered_task_ids)
@@ -116,7 +116,7 @@ async def reorder_tasks(
 async def update_task(
     task_id: int,
     request_dto: TaskUpdateRequestDto,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> SimpleTaskResponseDto:
     update_data = request_dto.model_dump(exclude_unset=True)
     request_version = update_data.pop("version")
@@ -133,7 +133,7 @@ async def update_task(
 )
 async def archive_task(
     task_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> SimpleTaskResponseDto:
     service = TaskService(db)
     task = service.archive_task(task_id)
@@ -147,7 +147,7 @@ async def archive_task(
 )
 async def unarchive_task(
     task_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> SimpleTaskResponseDto:
     service = TaskService(db)
     task = service.unarchive_task(task_id)
@@ -163,7 +163,7 @@ async def update_task_section(
     task_id: int,
     section_id: int,
     request_dto: TaskSectionUpdateRequestDto,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> TaskSectionResponseDto:
     update_data = request_dto.model_dump(exclude_unset=True)
     request_version = update_data.pop("version")

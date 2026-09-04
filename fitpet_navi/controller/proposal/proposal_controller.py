@@ -30,14 +30,16 @@ proposal_router = APIRouter(
     status_code=status.HTTP_200_OK,
     response_model=ChatResponseDto,
 )
-async def chat(
+def chat(
     task_id: int,
     request_dto: ChatRequestDto,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
     generator: ProposalGenerator = Depends(get_proposal_generator),
 ) -> ChatResponseDto:
-    service = ProposalService(db, generator)
-    result = service.chat(task_id, request_dto.message)
+    # LLM 호출이 동기(blocking)이므로 `async def`가 아닌 `def`로 선언해 스레드풀에서 실행한다.
+    # `async def`로 바꾸면 LLM 응답을 기다리는 동안 이벤트 루프 전체가 멈춘다.
+    service = ProposalService(db)
+    result = service.chat(task_id, request_dto.message, generator)
     return ChatResponseDto.from_result(result)
 
 
@@ -48,7 +50,7 @@ async def chat(
 )
 async def get_proposals(
     task_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> list[ProposalResponseDto]:
     service = ProposalService(db)
     proposals = service.get_proposals(task_id)
@@ -62,7 +64,7 @@ async def get_proposals(
 )
 async def accept_proposal(
     proposal_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ) -> ProposalAcceptResponseDto:
     service = ProposalService(db)
     result = service.accept(proposal_id)
@@ -70,16 +72,31 @@ async def accept_proposal(
 
 
 @proposal_router.post(
+    "/proposals/{proposal_id}/close",
+    status_code=status.HTTP_200_OK,
+    response_model=ProposalResponseDto,
+)
+async def close_proposal(
+    proposal_id: int,
+    db: Session = Depends(get_db, scope="function"),
+) -> ProposalResponseDto:
+    service = ProposalService(db)
+    proposal = service.close(proposal_id)
+    return ProposalResponseDto.model_validate(proposal)
+
+
+@proposal_router.post(
     "/proposals/{proposal_id}/reject",
     status_code=status.HTTP_200_OK,
     response_model=ChatResponseDto,
 )
-async def reject_proposal(
+def reject_proposal(
     proposal_id: int,
     request_dto: ProposalRejectRequestDto,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
     generator: ProposalGenerator = Depends(get_proposal_generator),
 ) -> ChatResponseDto:
-    service = ProposalService(db, generator)
-    result = service.reject(proposal_id, request_dto.reason)
+    # 거부 후 재제안을 위해 LLM을 동기 호출하므로 `chat`과 같은 이유로 `def`로 선언한다.
+    service = ProposalService(db)
+    result = service.reject(proposal_id, request_dto.reason, generator)
     return ChatResponseDto.from_result(result)

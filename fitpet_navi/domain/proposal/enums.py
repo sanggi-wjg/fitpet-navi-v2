@@ -10,3 +10,4 @@ class ProposalStatusEnum(StrEnum):
     PENDING = "PENDING"  # 대기
     ACCEPTED = "ACCEPTED"  # 수락
     REJECTED = "REJECTED"  # 거부
+    CLOSED = "CLOSED"  # 닫음 (수락·거부 없이 종결)

@@ -56,8 +56,8 @@
 - 실서비스: tools + `tool_choice: {type: "any"}` (도구 강제 + no_change 탈출구 + 서버 검증 + 재시도 1회)
     - 데모는 환경 제약으로 JSON 계약 출력 방식으로 검증 완료 — 파이프라인은 운송 수단과 무관하게 동일
 - 본문 정본(canonical)은 마크다운. 블록 에디터와의 정밀 통합은 보류
-- proposal 테이블: `id, task_id, tool, input(JSON), base, status(pending/accepted/rejected/stale), created_at`
-- 엔드포인트 3개: `POST /tasks/:id/chat`, `POST /proposals/:id/accept`, `POST /proposals/:id/reject`
+- proposal 테이블: `id, task_id, tool, input(JSON), base, status(pending/accepted/rejected/closed — stale은 저장하지 않고 파생), created_at`
+- 엔드포인트 4개: `POST /tasks/:id/chat`, `POST /proposals/:id/accept`, `POST /proposals/:id/reject`, `POST /proposals/:id/close`
 
 ## 범위 3. "개발 준비됨" 게이트
 

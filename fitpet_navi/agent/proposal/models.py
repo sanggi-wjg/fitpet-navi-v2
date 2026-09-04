@@ -4,7 +4,11 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
-from fitpet_navi.util.util_string import has_level2_heading, normalize_section_name
+from fitpet_navi.util.util_string import (
+    find_level2_heading_outside_code_fence,
+    has_level2_heading,
+    normalize_section_name,
+)
 
 
 class NoChange(BaseModel):
@@ -46,6 +50,14 @@ class ReplaceSection(BaseModel):
         stripped = "\n".join(lines).strip()
         if not stripped:
             raise ValueError("new_content가 비어 있다. 섹션을 비우려면 no_change 로 담당자에게 먼저 물어야 한다.")
+
+        # 문서는 `## 섹션명` 으로 섹션을 구분하므로, 본문에 다른 `## ` 헤딩이 섞이면 수락 후 문서 구조가 깨진다.
+        heading = find_level2_heading_outside_code_fence(stripped)
+        if heading is not None:
+            raise ValueError(
+                f"new_content 에 `## ` 헤딩({heading!r})이 들어 있다. "
+                "섹션 하나의 본문만 담아야 하며, 다른 섹션을 고치려면 별도의 replace_section 이어야 한다."
+            )
         return stripped
 
 

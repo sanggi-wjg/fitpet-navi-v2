@@ -103,6 +103,102 @@ class ProposalControllerTest:
         # then
         assert response.status_code == 404
 
+    # ---------- close ----------
+
+    def test_close_marks_proposal_closed_without_touching_section(
+        self, client: TestClient, fake_generator: FakeProposalGenerator
+    ):
+        # given
+        task = create_task_with_sections(client)
+        before = next(s for s in task["task_sections"] if s["name"] == "예외 조건")
+        proposal = create_pending_proposal(client, fake_generator, task)
+
+        # when
+        response = client.post(f"/api/v1/proposals/{proposal['id']}/close")
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["id"] == proposal["id"]
+        assert body["status"] == "CLOSED"
+        assert body["is_stale"] is False
+        assert body["reject_reason"] is None
+
+        detail = client.get(f"/api/v1/tasks/{task['id']}").json()
+        section = next(s for s in detail["task_sections"] if s["id"] == proposal["section_id"])
+        assert section["body"] == before["body"]
+        assert section["version"] == before["version"]
+
+        listed = client.get(f"/api/v1/tasks/{task['id']}/proposals").json()
+        assert [(p["id"], p["status"]) for p in listed] == [(proposal["id"], "CLOSED")]
+
+    def test_close_twice_returns_400(self, client: TestClient, fake_generator: FakeProposalGenerator):
+        # given
+        task = create_task_with_sections(client)
+        proposal = create_pending_proposal(client, fake_generator, task)
+        assert client.post(f"/api/v1/proposals/{proposal['id']}/close").status_code == 200
+
+        # when
+        response = client.post(f"/api/v1/proposals/{proposal['id']}/close")
+
+        # then
+        assert response.status_code == 400
+        assert response.json()["statusText"] == "BAD_REQUEST"
+
+    def test_close_accepted_proposal_returns_400(self, client: TestClient, fake_generator: FakeProposalGenerator):
+        # given
+        task = create_task_with_sections(client)
+        proposal = create_pending_proposal(client, fake_generator, task)
+        assert client.post(f"/api/v1/proposals/{proposal['id']}/accept").status_code == 200
+
+        # when
+        response = client.post(f"/api/v1/proposals/{proposal['id']}/close")
+
+        # then
+        assert response.status_code == 400
+        assert response.json()["statusText"] == "BAD_REQUEST"
+
+    def test_accept_closed_proposal_returns_400(self, client: TestClient, fake_generator: FakeProposalGenerator):
+        # given — 닫힌 제안은 되살릴 수 없다
+        task = create_task_with_sections(client)
+        proposal = create_pending_proposal(client, fake_generator, task)
+        assert client.post(f"/api/v1/proposals/{proposal['id']}/close").status_code == 200
+
+        # when
+        response = client.post(f"/api/v1/proposals/{proposal['id']}/accept")
+
+        # then
+        assert response.status_code == 400
+        assert response.json()["statusText"] == "BAD_REQUEST"
+
+    def test_close_stale_proposal_succeeds(self, client: TestClient, fake_generator: FakeProposalGenerator):
+        # given — 제안 이후 섹션이 바뀌어 accept 라면 409 인 상황
+        task = create_task_with_sections(client)
+        proposal = create_pending_proposal(client, fake_generator, task)
+        patched = client.patch(
+            f"/api/v1/tasks/{task['id']}/sections/{proposal['section_id']}",
+            json={"body": "- 담당자가 직접 고친 본문", "version": proposal["section_version"]},
+        )
+        assert patched.status_code == 200
+        listed = client.get(f"/api/v1/tasks/{task['id']}/proposals").json()
+        assert listed[0]["is_stale"] is True
+
+        # when
+        response = client.post(f"/api/v1/proposals/{proposal['id']}/close")
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "CLOSED"
+        assert body["is_stale"] is False
+
+    def test_close_not_found(self, client: TestClient):
+        # when
+        response = client.post("/api/v1/proposals/999999/close")
+
+        # then
+        assert response.status_code == 404
+
     # ---------- reject ----------
 
     def test_reject_saves_reason_and_regenerates_with_context(
@@ -265,6 +361,31 @@ class ProposalControllerTest:
         section = next(s for s in task["task_sections"] if s["name"] == "예외 조건")
         fake_generator.payload = ReplaceSection(
             tool="replace_section", section="예외 조건", new_content=section["body"], reason="이미 충분합니다."
+        )
+
+        # when
+        response = client.post(f"/api/v1/tasks/{task['id']}/chat", json={"message": "검토해 주세요."})
+
+        # then
+        assert response.status_code == 200
+        body = response.json()
+        assert body["tool"] == "no_change"
+        assert body["message"] == "이미 충분합니다."
+        assert body["proposal"] is None
+        assert db_session.execute(select(func.count()).select_from(Proposal)).scalar_one() == 0
+
+    def test_chat_replace_section_differing_only_by_trailing_newline_is_treated_as_no_change(
+        self, client: TestClient, fake_generator: FakeProposalGenerator, db_session: Session
+    ):
+        # given — 섹션 본문은 후행 개행을 그대로 저장하지만, 제안의 new_content 는 validator 가 strip 한다
+        task = create_task_with_sections(client)
+        section = next(s for s in task["task_sections"] if s["name"] == "예외 조건")
+        client.patch(
+            f"/api/v1/tasks/{task['id']}/sections/{section['id']}",
+            json={"body": "- 탈퇴 유저는 제외\n", "version": section["version"]},
+        )
+        fake_generator.payload = ReplaceSection(
+            tool="replace_section", section="예외 조건", new_content="- 탈퇴 유저는 제외", reason="이미 충분합니다."
         )
 
         # when
