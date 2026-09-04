@@ -86,10 +86,16 @@ class Task(BaseMixin, SoftDeleteMixin):
 
         for key, value in fields.items():
             if key not in self._UPDATABLE_FIELDS:
-                raise ValueError(f"Field '{key}' is not updatable")
+                raise ValueError(f"수정할 수 없는 필드입니다: {key}")
 
             if hasattr(self, key) and getattr(self, key) != value:
                 setattr(self, key, value)
                 any_changed = True
 
         return any_changed
+
+    def find_section(self, name: str) -> TaskSection | None:
+        for section in self.task_sections:
+            if section.name == name:
+                return section
+        return None

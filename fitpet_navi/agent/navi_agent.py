@@ -1,34 +1,40 @@
 from functools import lru_cache
+from typing import Any
 
 import httpx
 from ollama import Client, ResponseError
 
 from fitpet_navi.core.config import get_settings
+from fitpet_navi.core.exceptions import LlmUnavailableException
 
 settings = get_settings()
 
 
 class NaviAgent:
     def __init__(self) -> None:
-        self._property = settings.ollama
-        self._client = Client(
-            host=self._property.host,
-            headers=self._property.headers,
-            timeout=self._property.timeout_seconds,
+        self.property = settings.ollama
+        self.client = Client(
+            host=self.property.host,
+            headers=self.property.headers,
+            timeout=self.property.timeout_seconds,
         )
 
-    def chat(self, messages: list[dict[str, str]]) -> str:
+    def chat(self, messages: list[dict[str, str]], format: dict[str, Any] | None = None) -> str:
+        """
+        format 에 JSON 스키마를 주면 Ollama 가 그 구조의 JSON 만 출력하도록 강제한다 (structured output).
+        구조만 보장하므로 의미 검증(섹션 존재 여부 등)은 호출 측에서 따로 한다.
+        """
         try:
-            response = self._client.chat(
-                model=self._property.model,
-                messages=messages,
-                think=self._property.think,
+            response = self.client.chat(
+                model=self.property.model,
+                think=self.property.think,
                 stream=False,
+                messages=messages,
                 options={"temperature": 0.0},
+                format=format,
             )
         except (ResponseError, httpx.HTTPError, OSError, ValueError) as e:
-            raise Exception("Navi 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.") from e
-            # raise LlmUnavailableException("Navi 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.") from e
+            raise LlmUnavailableException() from e
 
         return response.message.content or "" if response.message else ""
 

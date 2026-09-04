@@ -41,13 +41,26 @@ uv run pytest tests/controller/task/task_controller_test.py::TaskControllerTest:
 - **service**: 비즈니스 로직. 없는 리소스는 `NotFoundException` 계열 (`TaskNotFoundException` 등) 발생. 여러 리포지토리를 조합할 수 있다.
 - **repository**: SQLAlchemy 2.0 `select()` 스타일. 생성자로 `Session`을 받는다. 모든 조회에 `is_deleted.is_(False)` 조건 필수 — 조인·`selectinload` 대상에도 동일하게 건다 (`Task.task_sections.and_(TaskSection.is_deleted.is_(False))`).
 - **domain**: SQLAlchemy 엔티티. 생성은 `Entity.create(...)` 클래스메서드, 수정은 `entity.update_fields(**fields) -> bool` — `_UPDATABLE_FIELDS` 화이트리스트 밖의 필드는 `ValueError`, 실제로 값이 바뀌었는지를 반환한다.
-- **agent**: `agent/navi_agent.py`의 `NaviAgent` — Ollama 클라이언트 래퍼. `get_navi_agent()` (lru_cache)로 얻는다. 아직 라우터에 연결되지 않았다.
+- **agent**: `agent/navi_agent.py`의 `NaviAgent` — Ollama 클라이언트 래퍼 (`get_navi_agent()`, lru_cache). `agent/proposal/`의 `ProposalGenerator`가 시스템 프롬프트(`prompts.py`) + 문서로 LLM을 호출해 `ProposalPayload`(`models.py`, `NoChange | ReplaceSection`)를 돌려준다. 서비스는 이를 직접 만들지 않고 `chat`·`reject` 메서드 인자로 받는다 (컨트롤러가 `Depends(get_proposal_generator)`로 주입).
 
 DTO는 `controller/<domain>/dto/` 에 `*RequestDto` / `*ResponseDto`. 응답 DTO는 `ConfigDict(from_attributes=True)` + `ResponseDto.model_validate(entity)`로 변환한다. 부분 수정 요청은 `model_dump(exclude_unset=True)`로 넘긴다.
 
 ### 태스크와 섹션
 
 `Task` 1 : N `TaskSection`. 섹션 집합은 `domain/task/task_section_template.py`의 타입별 템플릿이 정하고 **태스크 생성 시 확정**된다 — 추가·삭제·순서 변경 API 없음. 템플릿 본문의 예제 마커(`domain/task/constants.py`의 `EXAMPLE_MARKER`) 수가 `example_marker_count`(예제 텍스트 잔존 여부 판정)다. `GET /api/v1/tasks/templates`가 템플릿을 그대로 노출한다.
+
+### 제안 (proposal) 루프
+
+에이전트는 문서를 직접 쓰지 않고 **제안만** 만든다. 쓰기는 사용자의 수락에서만 일어난다.
+
+- `ProposalGenerator.generate(task, message, rejection_context)`: Ollama **structured output**(`format=PROPOSAL_JSON_SCHEMA`)으로 구조를 강제하고, pydantic validator + "문서에 있는 섹션명인지" 검사로 의미를 검증한다. 실패하면 오류를 붙여 1회 재요청, 그래도 실패면 `LlmContractViolationException`(503). 프롬프트에는 `<sections>`(이름·필수 여부·예제 마커 수)를 서버가 넣어 준다.
+- `ProposalService.chat`: `NoChange`면 저장 없이 message만 응답. `ReplaceSection`이면 `Proposal.create_for_section(section, …)`으로 PENDING 저장 + 서버가 계산한 diff(`util/util_diff.py`) 응답. **task_id·section_id·section_version은 섹션 하나에서 파생**한다 — 두 FK를 따로 받는 팩토리를 두지 않는다.
+- `accept`: proposal `FOR UPDATE` → PENDING 아니면 400 → `section.version != proposal.section_version`이면 `ProposalStaleException`(409) → 같으면 섹션 body 교체 + `increase_version` + ACCEPTED. **stale은 저장하지 않고 파생**한다(`Proposal.is_stale`) — 예외로 롤백되므로 저장할 수도 없다. `task.version`은 올리지 않는다(섹션 편집과 동일).
+- `reject`: REJECTED + 사유 저장 후 `RejectionContext`를 담아 바로 재제안. LLM 장애면 요청 전체가 롤백되어 거부도 남지 않는다.
+- `close`: PENDING → CLOSED. 화면의 "닫기"로, 섹션·LLM을 건드리지 않으며 stale이어도 닫을 수 있다. 목록에는 이력으로 남는다.
+- `update_field`(제목·태그 제안)는 **제거**. 모델이 제목을 바꾸자고 하면 `no_change` message로 제안하고 담당자가 직접 고친다.
+- 라우터는 `controller/proposal/proposal_controller.py` (prefix `/api/v1`, `/tasks/{id}/chat`·`/tasks/{id}/proposals`·`/proposals/{id}/accept|reject|close`). generator는 LLM을 쓰는 chat·reject 라우트만 `Depends(get_proposal_generator)`로 주입해 서비스 메서드에 넘긴다 (테스트에서 바꿔 끼운다). 조회·수락 라우트는 Ollama 클라이언트를 만들지 않는다.
+- 프롬프트·전송 방식 실험은 `playground/playground_ollama.py` (gitignore 대상).
 
 ### 버전과 낙관적 잠금
 
@@ -86,12 +99,13 @@ DTO는 `controller/<domain>/dto/` 에 `*RequestDto` / `*ResponseDto`. 응답 DTO
 
 `controller/support/exception_handler.py`에서 전역 등록. 응답 형태는 `ErrorResponseDto`.
 
-| 예외                      | 상태 코드 |
-|---------------------------|-----------|
-| `NotFoundException` 계열  | 404       |
-| `OptimisticLockException` | 409       |
-| 그 외 `ServiceException`  | 400       |
-| 그 외 `Exception`         | 500       |
+| 예외                                                  | 상태 코드 |
+|-------------------------------------------------------|-----------|
+| `NotFoundException` 계열                              | 404       |
+| `OptimisticLockException` 계열 (`ProposalStaleException` 포함) | 409 |
+| `LlmException` 계열 (`LlmUnavailable`, `LlmContractViolation`) | 503 |
+| 그 외 `ServiceException`                              | 400       |
+| 그 외 `Exception`                                     | 500       |
 
 새 예외는 `core/exceptions.py`의 `ServiceException`(또는 `NotFoundException`)을 상속시킨다. 새 상태 코드가 필요하면 핸들러와 라우터 `responses`를 함께 추가한다.
 
@@ -99,7 +113,8 @@ DTO는 `controller/<domain>/dto/` 에 `*RequestDto` / `*ResponseDto`. 응답 DTO
 
 - 파일 `*_test.py`, 클래스 `*Test`, 메서드 `test_*` (pytest 설정이 이 패턴만 수집한다. `test_*.py`는 **수집되지 않는다**).
 - `tests/conftest.py`: 세션 스코프 MySQL 컨테이너 (`mysql:8.0`) + `create_all`. 함수 스코프 `db_session`은 commit 없이 close되어 테스트 간 롤백된다. `task_fixture`는 기본값을 덮어쓰는 팩토리 (`task_fixture(title=..., display_order=...)`).
-- `tests/controller/conftest.py`: `client` 픽스처가 `get_db`를 `db_session`으로 override한 `TestClient`.
+- `tests/controller/conftest.py`: `client` 픽스처가 `get_db`를 `db_session`으로 override한 `TestClient`. override는 요청마다 `begin_nested()`(SAVEPOINT)로 감싸서 실제 `get_db`의 "요청 단위 commit / 예외 시 rollback"을 흉내 낸다 — 503 후 롤백 같은 동작을 테스트할 수 있다.
+- `fake_generator` 픽스처: `get_proposal_generator`를 `FakeProposalGenerator`로 바꿔 LLM 호출 없이 제안 흐름을 테스트한다. `client`가 이 픽스처에 의존하므로 모든 컨트롤러 테스트에 자동 적용되며, 페이로드를 설정하려면 테스트에서 직접 받으면 된다. `fake.payload = ReplaceSection(...)` 또는 `fake.error = LlmUnavailableException()`을 설정하고, `fake.calls`로 `(task_id, message, rejection_context)`를 검증한다. LLM을 실제로 호출하는 테스트는 만들지 않는다.
 - **테스트 범위 정책 (간소화)**: controller → service → repository 레이어 중 **컨트롤러 (HTTP) 테스트만 작성한다**. 서비스·리포지토리·도메인 엔티티의 단위 테스트는 만들지 않는다 — 그 로직은 컨트롤러 테스트가 HTTP 경유로 검증한다. 레이어에 속하지 않는 `util` 등의 순수 함수는 별도 단위 테스트를 둔다 (`tests/util/`).
 - `# given / # when / # then` 주석으로 구분.
 - `pyproject.toml`의 `[tool.pytest.ini_options] env`가 더미 설정을 주입하므로 `.env` 없이도 돈다.
