@@ -61,8 +61,3 @@ class RejectionContext:
 
     previous_proposal_json: str
     reason: str
-
-
-@dataclass(frozen=True)
-class ProposalResult:
-    payload: ProposalPayload

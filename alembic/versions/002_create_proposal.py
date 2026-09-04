@@ -13,9 +13,9 @@ def upgrade():
             task_id         BIGINT      NOT NULL COMMENT 'task FK',
             section_id      BIGINT      NOT NULL COMMENT 'task_section FK',
             section_version INT         NOT NULL COMMENT '제안 시점의 섹션 버전',
-            tool            VARCHAR(64) NOT NULL COMMENT '도구 (REPLACE_SECTION)',
-            tool_input           JSON        NOT NULL COMMENT '도구 입력 (new_content, reason)',
-            status          VARCHAR(64) NOT NULL DEFAULT 'PENDING' COMMENT '상태 (PENDING / ACCEPTED / REJECTED / STALE)',
+            tool            VARCHAR(64) NOT NULL COMMENT '도구 (replace_section)',
+            tool_input      JSON        NOT NULL COMMENT '도구 입력 (new_content, reason)',
+            status          VARCHAR(64) NOT NULL DEFAULT 'PENDING' COMMENT '상태 (PENDING / ACCEPTED / REJECTED)',
             reject_reason   TEXT        NULL COMMENT '거부 사유',
 
             created_at      DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '생성일시',

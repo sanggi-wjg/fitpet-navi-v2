@@ -43,20 +43,18 @@ class ProposalGenerator:
 
             try:
                 payload = PROPOSAL_ADAPTER.validate_json(raw)
-                self._validate_against_task(payload, section_names)
+                self._validate_payload(payload, section_names)
                 return payload
             except (ValidationError, ValueError) as e:
                 last_error = str(e)
                 logger.warning(f"[proposal] attempt={attempt} 출력 계약 위반: {last_error}")
-                # 직전 응답과 오류를 대화에 붙여 고쳐 달라고 재요청한다
                 messages.append({"role": "assistant", "content": raw})
                 messages.append({"role": "user", "content": RETRY_BLOCK_TEMPLATE.format(error=last_error)})
 
         raise LlmContractViolationException(f"Navi 의 제안을 해석하지 못했습니다: {last_error}")
 
     @staticmethod
-    def _validate_against_task(payload: ProposalPayload, section_names: set[str]) -> None:
-        """스키마로는 잡을 수 없는, 문서 맥락에 의존하는 검증."""
+    def _validate_payload(payload: ProposalPayload, section_names: set[str]) -> None:
         if isinstance(payload, ReplaceSection) and payload.section not in section_names:
             raise ValueError(
                 f"section '{payload.section}' 은 문서에 없는 섹션이다. 다음 중 하나여야 한다: {sorted(section_names)}"

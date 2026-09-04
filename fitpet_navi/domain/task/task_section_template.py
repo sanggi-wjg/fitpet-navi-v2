@@ -152,7 +152,7 @@ def get_section_templates_by_task_type() -> dict[TaskTypeEnum, list[TaskSectionT
 def create_task_sections_factory(task_type: TaskTypeEnum, task_id: int) -> list[TaskSection]:
     templates = _SECTION_TEMPLATES_BY_TASK_TYPE.get(task_type)
     if templates is None:
-        raise ValueError(f"Unsupported task type: {task_type}")
+        raise ValueError(f"템플릿이 없는 태스크 유형입니다: {task_type}")
 
     return [
         TaskSection.create(

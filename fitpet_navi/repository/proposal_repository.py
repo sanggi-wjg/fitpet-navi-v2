@@ -1,8 +1,9 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from fitpet_navi.domain.proposal.enums import ProposalStatusEnum
 from fitpet_navi.domain.proposal.proposal import Proposal
+from fitpet_navi.domain.task.task_section import TaskSection
 
 
 class ProposalRepository:
@@ -35,6 +36,7 @@ class ProposalRepository:
     def find_all_by_task_id(self, task_id: int, status: ProposalStatusEnum | None = None) -> list[Proposal]:
         stmt = (
             select(Proposal)
+            .options(selectinload(Proposal.section.and_(TaskSection.is_deleted.is_(False))))
             .where(
                 Proposal.task_id == task_id,
                 Proposal.is_deleted.is_(False),

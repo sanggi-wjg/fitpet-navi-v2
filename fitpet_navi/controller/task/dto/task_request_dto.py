@@ -31,11 +31,3 @@ class TaskUpdateRequestDto(BaseModel):
 class TaskSectionUpdateRequestDto(BaseModel):
     body: str = Field(..., description="섹션 내용")
     version: int = Field(..., description="섹션 버전")
-
-
-class TaskChatRequestDto(BaseModel):
-    message: str = Field(..., description="채팅 메시지")
-
-
-class TaskProposalRejectRequestDto(BaseModel):
-    reason: str = Field(..., description="반려 사유")

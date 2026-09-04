@@ -77,6 +77,11 @@ USER_PROMPT_TEMPLATE = """
 """.strip()
 
 
+REJECT_REQUEST_MESSAGE = (
+    "직전 제안이 거부되었습니다. 거부 사유를 반영해 같은 문제를 다른 방식으로 제안하거나, "
+    "고칠 것이 없으면 no_change 로 답하세요."
+)
+
 REJECTION_BLOCK_TEMPLATE = """
 <rejected_proposal>
 {previous_proposal_json}

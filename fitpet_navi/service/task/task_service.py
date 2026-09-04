@@ -1,13 +1,10 @@
 from sqlalchemy.orm import Session
 
-from fitpet_navi.agent.proposal.models import NoChange, ProposalResult
-from fitpet_navi.agent.proposal.proposal_generator import RejectionContext, get_proposal_generator
 from fitpet_navi.core.exceptions import OptimisticLockException, TaskNotFoundException, TaskSectionNotFoundException
 from fitpet_navi.domain.task.enums import TaskStatusEnum, TaskTypeEnum
 from fitpet_navi.domain.task.task import Task
 from fitpet_navi.domain.task.task_section import TaskSection
 from fitpet_navi.domain.task.task_section_template import create_task_sections_factory
-from fitpet_navi.repository.proposal_repository import ProposalRepository
 from fitpet_navi.repository.task_repository import TaskRepository
 from fitpet_navi.repository.task_section_repository import TaskSectionRepository
 
@@ -16,7 +13,6 @@ class TaskService:
     def __init__(self, session: Session):
         self.task_repository = TaskRepository(session)
         self.task_section_repository = TaskSectionRepository(session)
-        self.proposal_repository = ProposalRepository(session)
 
     def get_tasks(self) -> list[Task]:
         return self.task_repository.find_all_with_sections()
@@ -118,28 +114,3 @@ class TaskService:
                 raise OptimisticLockException()
 
         return task_section
-
-    def chat(
-        self,
-        task_id: int,
-        user_message: str,
-        rejection_context: RejectionContext | None = None,
-    ):
-        task = self.task_repository.find_by_id_with_sections(task_id)
-        if task is None:
-            raise TaskNotFoundException(task_id)
-
-        proposal_generator = get_proposal_generator()
-        payload = proposal_generator.generate(task, user_message, rejection_context)
-
-        if isinstance(payload, NoChange):
-            return ProposalResult(payload=payload)
-
-        # proposal = self.proposal_repository.save(
-        #     Proposal.create(
-        #         task_id=task_id,
-        #         tool=ProposalToolEnum(payload.tool),
-        #         tool_input=payload.tool_input,
-        #     )
-        # )
-        return ProposalResult(payload=payload)

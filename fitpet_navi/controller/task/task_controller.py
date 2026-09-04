@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from fitpet_navi.controller.support.error_response_dto import ErrorResponseDto
 from fitpet_navi.controller.task.dto.task_request_dto import (
-    TaskChatRequestDto,
     TaskCreateRequestDto,
     TaskReorderRequestDto,
     TaskSectionUpdateRequestDto,
@@ -172,17 +171,3 @@ async def update_task_section(
     service = TaskService(db)
     task_section = service.update_section_with_version(task_id, section_id, request_version, **update_data)
     return TaskSectionResponseDto.model_validate(task_section)
-
-
-@task_router.post(
-    "/{task_id}/chat",
-    status_code=status.HTTP_200_OK,
-)
-async def chat(
-    task_id: int,
-    request_dto: TaskChatRequestDto,
-    db: Session = Depends(get_db),
-):
-    service = TaskService(db)
-    proposal_result = service.chat(task_id, request_dto.message)
-    return proposal_result
